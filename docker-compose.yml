@@ -1,0 +1,49 @@
+version: '3'
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/Nginx.Dockerfile
+    ports:
+      - "8098:80"
+    container_name: nginx
+    restart: on-failure
+    volumes:
+      -  ./:/var/www/project
+    links:
+      - phpfpm
+  phpfpm:
+    build:
+      context: .
+      dockerfile: docker/Fpm.Dockerfile
+    ports:
+      - "9000:9000"
+    volumes:
+      -  ./:/var/www/project
+    container_name: phpfpm
+    links:
+      - dbmysql
+  dbmysql:
+    image: mysql:8.0
+    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci','--default-authentication-plugin=mysql_native_password']
+    restart: on-failure
+    ports:
+      - 33061:3306
+    container_name: dbmysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: database
+      MYSQL_ROOT_HOST: '%'
+    volumes:
+      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+  phpmyadmin:
+    depends_on:
+      - dbmysql
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - 8082:80
+    environment:
+      PMA_HOST: dbmysql
+      MYSQL_ROOT_PASSWORD: root
